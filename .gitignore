@@ -16,3 +16,9 @@ mini-main/node_modules/
 
 # Large binary files
 **/*.node
+*.node
+**/next-swc.win32-x64-msvc.node
+
+# OS-specific files
+.DS_Store
+Thumbs.db
