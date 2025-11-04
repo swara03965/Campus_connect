@@ -13,3 +13,6 @@ mini-main/node_modules/
 .env
 .env.local
 .env.*.local
+
+# Large binary files
+**/*.node
