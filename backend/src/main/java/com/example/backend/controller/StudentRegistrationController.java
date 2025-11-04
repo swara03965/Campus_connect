@@ -1,45 +1,57 @@
-// src/main/java/com/example/registrationapi/controller/StudentRegistrationController.java
-
 package com.example.backend.controller;
 
+import com.example.backend.model.Student;
 import com.example.backend.model.StudentRegistration;
-import com.example.backend.service.StudentRegistrationService; // Import the service
+import com.example.backend.model.RegistrationDetailDTO;
+import com.example.backend.repository.EventRepository;
+import com.example.backend.repository.StudentRepository;
+import com.example.backend.repository.StudentRegistrationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/registrations")
+@CrossOrigin(origins = "http://localhost:3000") // Allows your React app to call this API
 public class StudentRegistrationController {
 
-    // Inject the service, not the repository
-    private final StudentRegistrationService registrationService;
+    @Autowired
+    private StudentRegistrationRepository registrationRepository;
 
     @Autowired
-    public StudentRegistrationController(StudentRegistrationService registrationService) {
-        this.registrationService = registrationService;
-    }
+    private EventRepository eventRepository;
 
-    /**
-     * GET /api/registrations : Fetches all registrations
-     */
-    @GetMapping
-    public List<StudentRegistration> getAllRegistrations() {
-        // Call the service method
-        return registrationService.getAllRegistrations();
-    }
+    @Autowired
+    private StudentRepository studentRepository;
 
-    /**
-     * POST /api/registrations : Creates a new registration
-     */
-    @PostMapping
-    public ResponseEntity<StudentRegistration> createRegistration(@RequestBody StudentRegistration registration) {
-        // Call the service method
-        StudentRegistration savedRegistration = registrationService.createRegistration(registration);
-        return new ResponseEntity<>(savedRegistration, HttpStatus.CREATED);
+    // ... (Your other POST mapping for creating a registration) ...
+
+    @GetMapping("/event/{eventId}")
+    public ResponseEntity<List<RegistrationDetailDTO>> getRegistrationsByEvent(@PathVariable Long eventId) {
+        List<StudentRegistration> registrations = registrationRepository.findByEventId(eventId);
+        List<RegistrationDetailDTO> detailedRegistrations = new ArrayList<>();
+
+        for (StudentRegistration reg : registrations) {
+            Optional<Student> studentOpt = studentRepository.findByEmail(reg.getEmail());
+            if (studentOpt.isPresent()) {
+                Student student = studentOpt.get();
+                
+                // Create a DTO and combine the data from both tables
+                RegistrationDetailDTO dto = new RegistrationDetailDTO();
+                dto.setId(reg.getId());
+                dto.setName(student.getName());
+                dto.setEmail(student.getEmail());
+
+                dto.setRegistrationDate(reg.getRegistrationDate());
+                
+                detailedRegistrations.add(dto);
+            }
+        }
+        
+        return ResponseEntity.ok(detailedRegistrations);
     }
 }

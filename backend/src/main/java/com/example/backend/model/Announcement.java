@@ -16,7 +16,7 @@ public class Announcement {
     @Column(columnDefinition = "TEXT")
     private String content;
     private String priority;
-    private String status = "draft";
+    private String status = "DRAFT";
     private String targetAudience;
     private LocalDate createdAt;
     private LocalDate publishedAt;

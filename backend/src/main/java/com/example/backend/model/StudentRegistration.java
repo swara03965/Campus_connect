@@ -1,24 +1,33 @@
-// src/main/java/com/example/registrationapi/model/StudentRegistration.java
-
 package com.example.backend.model;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "student_registrations")
+@Table(name = "event_registrations") // Tells JPA the correct table name
 public class StudentRegistration {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-    private String rollNo;
+    // This field maps to the 'user_email' column in your database
+    @Column(name = "user_email")
     private String email;
-    private String eventId;
-    private String eventName;
+
+    // This field maps to the 'event_id' column in your database
+    @Column(name = "event_id")
+    private Long eventId;
+
+    // JPA will automatically look for a 'registration_date' column
+    // This assumes your table has this column. If not, you may need to map it too.
+    @Column(updatable = false)
+    private LocalDateTime registrationDate;
+
+    // --- We remove name, rollNo, and eventName because they are not in this table ---
+
+    // --- Getters and Setters ---
+    // (It's better to use Lombok's @Data annotation to generate these automatically)
 
     public Long getId() {
         return id;
@@ -26,22 +35,6 @@ public class StudentRegistration {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getRollNo() {
-        return rollNo;
-    }
-
-    public void setRollNo(String rollNo) {
-        this.rollNo = rollNo;
     }
 
     public String getEmail() {
@@ -52,20 +45,12 @@ public class StudentRegistration {
         this.email = email;
     }
 
-    public String getEventId() {
+    public Long getEventId() {
         return eventId;
     }
 
-    public void setEventId(String eventId) {
+    public void setEventId(Long eventId) {
         this.eventId = eventId;
-    }
-
-    public String getEventName() {
-        return eventName;
-    }
-
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
     }
 
     public LocalDateTime getRegistrationDate() {
@@ -75,10 +60,4 @@ public class StudentRegistration {
     public void setRegistrationDate(LocalDateTime registrationDate) {
         this.registrationDate = registrationDate;
     }
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime registrationDate;
-
-    // Getters and Setters...
 }

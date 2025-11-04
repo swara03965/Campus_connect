@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react" // <-- Added useEffect
+import { useState, useEffect, useCallback} from "react" // <-- Added useEffect
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -25,6 +25,7 @@ import {
   User,
   ChevronRight,
   Sparkles,
+  RefreshCw,
 } from "lucide-react"
 import { NotificationCenter } from "@/components/notification-center"
 // import { useNotifications } from "@/contexts/notification-context"
@@ -64,7 +65,15 @@ interface Event {
   attendees: number
   createdBy?: string
 }
-
+// --- ADD THIS INTERFACE (around line 55) ---
+interface Registration {
+  id: number;
+  name: string;
+  rollNo: string;
+  email: string;
+  eventName: string;
+  registrationDate: string;
+}
 interface NewEvent {
   title: string
   description: string
@@ -117,34 +126,46 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
     targetAudience: "all",
   })
 
+
+  // --- ADD THESE LINES (around line 112) ---
+  const [isViewingAttendees, setIsViewingAttendees] = useState(false);
+  const [attendeesList, setAttendeesList] = useState<Registration[]>([]);
+  const [selectedEventTitle, setSelectedEventTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // To show loading state
+
+  
   // State for managing modals
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false)
 
   // Function to fetch all data from the backend
-  const fetchData = async () => {
-    try {
-      const [eventsRes, announcementsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/events/all`),
-        fetch(`${API_BASE_URL}/announcements/all`),
-      ])
-      if (!eventsRes.ok || !announcementsRes.ok) {
-        throw new Error("Failed to fetch data from the server.")
-      }
-      const eventsData = await eventsRes.json()
-      const announcementsData = await announcementsRes.json()
-      setEvents(eventsData)
-      setAnnouncements(announcementsData)
-    } catch (error) {
-      console.error(error)
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" })
+ // --- REPLACE the old fetchData with this new version (around line 124) ---
+ const fetchData = useCallback(async () => {
+  setIsLoading(true); // Start loading
+  try {
+    const [eventsRes, announcementsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/events/all`),
+      fetch(`${API_BASE_URL}/announcements/all`),
+    ])
+    if (!eventsRes.ok || !announcementsRes.ok) {
+      throw new Error("Failed to fetch data from the server.")
     }
+    const eventsData = await eventsRes.json()
+    const announcementsData = await announcementsRes.json()
+    setEvents(eventsData)
+    setAnnouncements(announcementsData)
+  } catch (error: any) {
+    console.error(error)
+    toast({ title: "Error", description: error.message, variant: "destructive" })
+  } finally {
+      setIsLoading(false); // Stop loading, even if there's an error
   }
+}, [toast]); // Dependencies for useCallback
 
   // Fetch data when the component mounts
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
   // --- Event Handlers ---
   const handleCreateEvent = async () => {
@@ -178,6 +199,23 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
     }
   }
 
+  // --- ADD THIS ENTIRE FUNCTION (around line 200) ---
+  const handleViewRegistrations = async (eventId: number, eventTitle: string) => {
+    setIsLoading(true);
+    setSelectedEventTitle(eventTitle);
+    try {
+        const response = await fetch(`${API_BASE_URL}/registrations/event/${eventId}`);
+        if (!response.ok) throw new Error("Could not fetch registrations for this event.");
+        const data: Registration[] = await response.json();
+        setAttendeesList(data);
+        setIsViewingAttendees(true); // This will open the modal
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const handleDeleteEvent = async (id: number) => {
     try {
       await fetch(`${API_BASE_URL}/events/${id}`, { method: "DELETE" })
@@ -189,52 +227,48 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
   }
 
   // --- Announcement Handlers ---
-  const handleCreateAnnouncement = () => {
+  // --- REPLACE the three announcement handlers with these (around line 220) ---
+  const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
-      toast({ title: "Error", description: "Please fill in all required fields.", variant: "destructive" })
-      return
+      toast({ title: "Error", description: "Title and content are required.", variant: "destructive" });
+      return;
     }
-    
-    // Create a new announcement object with mock data (frontend only)
-    const newAnnouncementObj = {
-      id: Date.now(),
-      title: newAnnouncement.title,
-      content: newAnnouncement.content,
-      priority: newAnnouncement.priority,
-      targetAudience: newAnnouncement.targetAudience,
-      status: "draft",
-      createdAt: new Date().toISOString(),
-      publishedAt: undefined
+    try {
+        const response = await fetch(`${API_BASE_URL}/announcements`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newAnnouncement),
+        });
+        if (!response.ok) throw new Error("Failed to create announcement.");
+        setNewAnnouncement({ title: "", content: "", priority: "medium", targetAudience: "all" });
+        setIsCreatingAnnouncement(false);
+        await fetchData();
+        toast({ title: "Announcement Created", description: "Your announcement draft has been saved." });
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
     }
-    
-    // Add to local state
-    setAnnouncements([...announcements, newAnnouncementObj])
-    
-    // Reset form and close modal
-    setNewAnnouncement({ title: "", content: "", priority: "medium", targetAudience: "all" })
-    setIsCreatingAnnouncement(false)
-    
-    // Show success message
-    toast({ title: "Announcement Created", description: "Your announcement draft has been saved." })
-  }
+  };
 
-  const handlePublishAnnouncement = (id: number) => {
-    // Update the announcement status in local state
-    setAnnouncements(announcements.map(announcement => 
-      announcement.id === id 
-        ? { ...announcement, status: "published", publishedAt: new Date().toISOString() } 
-        : announcement
-    ))
-    
-    toast({ title: "Announcement Published", description: "The announcement is now visible." })
-  }
+  const handlePublishAnnouncement = async (id: number) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/announcements/${id}/publish`, { method: "PUT" });
+        if (!response.ok) throw new Error("Failed to publish announcement.");
+        await fetchData();
+        toast({ title: "Announcement Published", description: "The announcement is now visible." });
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
 
-  const handleDeleteAnnouncement = (id: number) => {
-    // Remove the announcement from local state
-    setAnnouncements(announcements.filter(announcement => announcement.id !== id))
-    
-    toast({ title: "Announcement Deleted", description: "The announcement has been removed." })
-  }
+  const handleDeleteAnnouncement = async (id: number) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/announcements/${id}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("Failed to delete announcement.");
+        await fetchData();
+        toast({ title: "Announcement Deleted", description: "The announcement has been removed." });
+    } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
   
   // Stats are now derived from the state which is fetched from the API
   const stats: Stats = {
@@ -290,6 +324,13 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+       {/* --- ADD this block right after the <main> tag (around line 241) --- */}
+    <div className="flex justify-end mb-8">
+        <Button variant="outline" onClick={fetchData} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
+    </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
           <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-gradient-to-br from-primary/5 to-primary/10 backdrop-blur-sm">
             <CardContent className="p-4 sm:p-6">
@@ -472,10 +513,10 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
                               <MapPin className="w-3 h-3" />
                               {event.location}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {event.attendees} attendees
-                            </span>
+                            <button onClick={() => handleViewRegistrations(event.id, event.title)} className="flex items-center gap-1 hover:text-primary transition-colors">
+                                    <Users className="w-3 h-3" />
+                                    {event.attendees} attendees
+                                  </button>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
@@ -494,7 +535,7 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
-                          {event.status === "draft" && (
+                          {event.status === "DRAFT" && (
                             <Button
                               onClick={() => handlePublishEvent(event.id)}
                               size="sm"
@@ -590,7 +631,7 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
-                          {announcement.status === "draft" && (
+                          {announcement.status === "DRAFT" && (
                             <Button
                               onClick={() => handlePublishAnnouncement(announcement.id)}
                               size="sm"
@@ -825,6 +866,104 @@ export function PRAdminDashboard({ user, onLogout }: PRAdminDashboardProps) {
           </Card>
         </div>
       )}
+
+
+{/* --- ADD THIS ENTIRE MODAL JSX BLOCK (around line 499) --- */}
+{isViewingAttendees && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+          <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border-0 bg-card/95">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  Registrations for "{selectedEventTitle}"
+                </CardTitle>
+                <Button onClick={() => setIsViewingAttendees(false)} variant="ghost" size="sm" className="hover:bg-muted">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-y-auto">
+              {isLoading ? (
+                <div className="h-[200px] flex items-center justify-center">
+                    <p>Loading attendees...</p>
+                </div>
+              ) : attendeesList.length === 0 ? (
+                <div className="h-[200px] flex items-center justify-center">
+                    <p className="text-muted-foreground">No students have registered for this event yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="border-b">
+                                <th className="text-left py-3 px-4 font-medium">Name</th>
+                                <th className="text-left py-3 px-4 font-medium">Email</th>
+                                {/* <th className="text-left py-3 px-4 font-medium">Roll No</th> */}
+                                <th className="text-left py-3 px-4 font-medium">Registered On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {attendeesList.map((reg) => (
+                                <tr key={reg.id} className="border-b hover:bg-muted/50">
+                                    <td className="py-3 px-4">{reg.name}</td>
+                                    <td className="py-3 px-4">{reg.email}</td>
+                                    {/* <td className="py-3 px-4">{reg.rollNo}</td> */}
+                                    <td className="py-3 px-4 text-sm text-muted-foreground">{new Date(reg.registrationDate).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      
+
+      {/* --- ADD THIS ENTIRE MODAL JSX BLOCK (around line 499) --- */}
+{isViewingAttendees && (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-300">
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border-0 bg-card/95">
+        <CardHeader className="pb-4">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Registrations for "{selectedEventTitle}"
+            </CardTitle>
+            <Button onClick={() => setIsViewingAttendees(false)} variant="ghost" size="sm" className="hover:bg-muted">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="h-[200px] flex items-center justify-center"><p>Loading attendees...</p></div>
+          ) : attendeesList.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center"><p className="text-muted-foreground">No students have registered for this event yet.</p></div>
+          ) : (
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                    <thead><tr className="border-b"><th className="text-left py-3 px-4 font-medium">Name</th><th className="text-left py-3 px-4 font-medium">Email</th><th className="text-left py-3 px-4 font-medium">Registered On</th></tr></thead>
+                    <tbody>
+                        {attendeesList.map((reg) => (
+                            <tr key={reg.id} className="border-b hover:bg-muted/50">
+                                <td className="py-3 px-4">{reg.name}</td>
+                                <td className="py-3 px-4">{reg.email}</td>
+                                {/* <td className="py-3 px-4">{reg.rollNo}</td> */}
+                                <td className="py-3 px-4 text-sm text-muted-foreground">{new Date(reg.registrationDate).toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+)}
 
       <Toaster />
     </div>

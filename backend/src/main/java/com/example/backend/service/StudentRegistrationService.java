@@ -1,21 +1,19 @@
-// src/main/java/com/example/registrationapi/service/StudentRegistrationService.java
-
 package com.example.backend.service;
 
 import com.example.backend.model.StudentRegistration;
 import java.util.List;
 
 public interface StudentRegistrationService {
-    /**
-     * Retrieves all student registrations.
-     * @return a list of all registrations.
-     */
+    
     List<StudentRegistration> getAllRegistrations();
 
-    /**
-     * Creates and saves a new student registration.
-     * @param registration The registration object to save.
-     * @return The saved registration object with its new ID.
-     */
     StudentRegistration createRegistration(StudentRegistration registration);
+    
+    // --- ADD THIS METHOD DEFINITION ---
+    /**
+     * Retrieves all registrations for a specific event.
+     * @param eventId The ID of the event.
+     * @return A list of registrations for that event.
+     */
+    List<StudentRegistration> getRegistrationsByEventId(Long eventId);
 }

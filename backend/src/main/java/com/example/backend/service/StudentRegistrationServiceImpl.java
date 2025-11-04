@@ -1,5 +1,3 @@
-// src/main/java/com/example/registrationapi/service/StudentRegistrationServiceImpl.java
-
 package com.example.backend.service;
 
 import com.example.backend.model.StudentRegistration;
@@ -9,27 +7,27 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
+@Service // Marks this as the service implementation
 public class StudentRegistrationServiceImpl implements StudentRegistrationService {
 
-    private final StudentRegistrationRepository registrationRepository;
-
-    @Autowired
-    public StudentRegistrationServiceImpl(StudentRegistrationRepository registrationRepository) {
-        this.registrationRepository = registrationRepository;
-    }
+    @Autowired // Injects the repository
+    private StudentRegistrationRepository studentRegistrationRepository;
 
     @Override
     public List<StudentRegistration> getAllRegistrations() {
-        // The logic is to simply call the repository's method.
-        // More complex business logic (e.g., validation) would go here.
-        return registrationRepository.findAll();
+        return studentRegistrationRepository.findAll();
     }
 
     @Override
     public StudentRegistration createRegistration(StudentRegistration registration) {
-        // Here you could add logic like checking for duplicates,
-        // validating data, etc., before saving.
-        return registrationRepository.save(registration);
+        // You might have more logic here, like checking for duplicates
+        return studentRegistrationRepository.save(registration);
+    }
+    
+    // --- IMPLEMENT THE NEW METHOD HERE ---
+    @Override
+    public List<StudentRegistration> getRegistrationsByEventId(Long eventId) {
+        // This calls the repository method you created earlier
+        return studentRegistrationRepository.findByEventId(eventId);
     }
 }

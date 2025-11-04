@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react" // <-- Added useEffect and useContext
+import { useState, useEffect, useContext ,useCallback } from "react" // <-- Added useEffect and useContext
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -24,6 +24,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  RefreshCw,
 } from "lucide-react"
 import { NotificationCenter } from "@/components/notification-center"
 // import { useNotifications } from "@/contexts/notification-context"
@@ -85,7 +86,7 @@ export function StudentDashboard({ user, onLogout }: StudentDashboardProps) {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-
+  const [isLoading, setIsLoading] = useState(false)
   // Function to handle event registration
   const handleRegisterForEvent = async (event: Event) => {
     if (registering) return;
@@ -144,34 +145,36 @@ export function StudentDashboard({ user, onLogout }: StudentDashboardProps) {
     }
   };
 
-  // Function to fetch published data from the backend
-  const fetchData = async () => {
-    try {
-      const [eventsRes, announcementsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/events`),
-        fetch(`${API_BASE_URL}/announcements`),
-      ])
-      if (!eventsRes.ok || !announcementsRes.ok) throw new Error("Could not connect to the server.")
-
-      const eventsData: Event[] = await eventsRes.json()
-      // We add the 'isRead' property on the client-side
-      const announcementsData = (await announcementsRes.json()).map((ann: Omit<Announcement, 'isRead'>) => ({
-        ...ann,
-        isRead: false,
-      }))
-
-      setAllEvents(eventsData)
-      setAnnouncements(announcementsData)
-    } catch (error) {
-      console.error(error)
-      toast({ title: "Error", description: (error as Error).message, variant: "destructive" })
+ // --- REPLACE the old fetchData with this new version (around line 145) ---
+ const fetchData = useCallback(async () => {
+  setIsLoading(true); // Start loading
+  try {
+    const [eventsRes, announcementsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/events`), // Assuming this gets published events
+      fetch(`${API_BASE_URL}/announcements`), // Assuming this gets published announcements
+    ]);
+    if (!eventsRes.ok || !announcementsRes.ok) {
+      throw new Error("Failed to fetch data from the server.");
     }
+    const eventsData = await eventsRes.json();
+    const announcementsData = (await announcementsRes.json()).map((ann: Omit<Announcement, 'isRead'>) => ({
+      ...ann,
+      isRead: false,
+    }));
+    setAllEvents(eventsData);
+    setAnnouncements(announcementsData);
+  } catch (error: any) {
+    console.error(error);
+    toast({ title: "Error", description: error.message, variant: "destructive" });
+  } finally {
+      setIsLoading(false); // Stop loading, even if there's an error
   }
+}, [toast]); // Dependencies for useCallback
 
   // Fetch initial data on component mount
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
   // Effect for filtering events whenever the master list or filters change
   useEffect(() => {
@@ -287,6 +290,13 @@ export function StudentDashboard({ user, onLogout }: StudentDashboardProps) {
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+       {/* --- ADD this block right after the <main> tag (around line 302) --- */}
+    <div className="flex justify-end mb-8">
+        <Button variant="outline" onClick={fetchData} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
+    </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-gradient-to-br from-primary/5 to-primary/10 backdrop-blur-sm">
             <CardContent className="p-4 sm:p-6">
