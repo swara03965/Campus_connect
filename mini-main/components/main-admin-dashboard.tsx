@@ -57,7 +57,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
   const fetchPrAdmins = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/admin/pr-admins');
+      const response = await fetch('https://campus-connect-1-mkae.onrender.com/api/admin/pr-admins');
       if (!response.ok) throw new Error("Failed to fetch PR Admins");
       const data = await response.json();
       setPrAdmins(data);
@@ -71,7 +71,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
   const fetchPendingUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/admin/pending-students');
+      const response = await fetch('https://campus-connect-1-mkae.onrender.com/api/admin/pending-students');
       if (!response.ok) throw new Error('Failed to fetch pending users');
       const data: Student[] = await response.json();
       setPendingUsers(data);
@@ -85,7 +85,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
   const fetchAllUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/admin/all-students');
+      const response = await fetch('https://campus-connect-1-mkae.onrender.com/api/admin/all-students');
       if (!response.ok) throw new Error('Failed to fetch all users');
       const data: Student[] = await response.json();
       setAllUsers(data);
@@ -110,7 +110,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
       return;
     }
     try {
-      const response = await fetch('http://localhost:8080/api/admin/pr-admins', {
+      const response = await fetch('https://campus-connect-1-mkae.onrender.com/api/admin/pr-admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPRAdmin),
@@ -132,7 +132,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
     const userToProcess = pendingUsers.find(user => user.id === id);
     if (!userToProcess) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/admin/students/${id}/approve`, { method: 'POST' });
+      const response = await fetch(`https://campus-connect-1-mkae.onrender.com/api/admin/students/${id}/approve`, { method: 'POST' });
       if (!response.ok) throw new Error("Approval failed");
       toast({ title: "User Approved", description: `${userToProcess.name} has been approved.` });
       await fetchPendingUsers();
@@ -146,7 +146,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
     const userToProcess = pendingUsers.find(user => user.id === id);
     if (!userToProcess) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/admin/students/${id}/reject`, { method: 'POST' });
+      const response = await fetch(`https://campus-connect-1-mkae.onrender.com/api/admin/students/${id}/reject`, { method: 'POST' });
       if (!response.ok) throw new Error("Rejection failed");
       toast({ title: "User Rejected", description: `${userToProcess.name} has been rejected.`, variant: "destructive" });
       await fetchPendingUsers();
@@ -167,7 +167,7 @@ export function MainAdminDashboard({ user, onLogout }: MainAdminDashboardProps) 
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/admin/pr-admins/${id}`, {
+      const response = await fetch(`https://campus-connect-1-mkae.onrender.com/api/admin/pr-admins/${id}`, {
         method: 'DELETE',
       });
 
