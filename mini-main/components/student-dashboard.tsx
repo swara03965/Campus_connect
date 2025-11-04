@@ -31,7 +31,7 @@ import { NotificationCenter } from "@/components/notification-center"
 // Note: The useEvents context is removed as we are now using direct API calls.
 
 // Define the base URL for your backend API
-const API_BASE_URL = "http://localhost:8080/api"
+const API_BASE_URL = "https://campus-connect-1-mkae.onrender.com/api"
 
 interface StudentDashboardProps {
   user: {
