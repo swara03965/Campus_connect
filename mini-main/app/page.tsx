@@ -62,7 +62,7 @@ export default function CollegeManagementApp() {
 
     // Step 2: If not the Main Admin, try to log in as a PR Admin.
     try {
-      const prAdminResponse = await fetch('http://localhost:8080/api/login/pr-admin', {
+      const prAdminResponse = await fetch('https://campus-connect-1-mkae.onrender.com/api/login/pr-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -81,7 +81,7 @@ export default function CollegeManagementApp() {
 
     // Step 3: If not a PR Admin, assume it's a Student and try to log in.
     try {
-      const studentResponse = await fetch('http://localhost:8080/api/login/student', {
+      const studentResponse = await fetch('https://campus-connect-1-mkae.onrender.com/api/login/student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -113,7 +113,7 @@ export default function CollegeManagementApp() {
       return
     }
     try {
-      const response = await fetch('http://localhost:8080/api/register/student', {
+      const response = await fetch('https://campus-connect-1-mkae.onrender.com/api/register/student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
